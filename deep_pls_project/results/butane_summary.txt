@@ -1,0 +1,9 @@
+Dataset : Debutanizer Column - Butane Content
+CSV     : data/Butane_data.csv
+Layers  : 3
+Components/layer : 3
+Fusion components: 2
+
+Baseline  RMSE=0.02056  R2=0.44252
+Deep PLS  RMSE=0.07111  R2=-5.66784
+RMSE improvement: -245.8%

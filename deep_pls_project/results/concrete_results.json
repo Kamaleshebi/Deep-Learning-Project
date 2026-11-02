@@ -1,0 +1,48 @@
+{
+  "dataset": "concrete",
+  "config": {
+    "n_layers": 3,
+    "n_components": 3,
+    "n_components_final": 2
+  },
+  "metrics": {
+    "baseline": {
+      "model": "Baseline PLS (shallow)",
+      "rmse": 11.24849676062088,
+      "mae": 8.727781963684643,
+      "r2": 0.5630211885262482,
+      "mape": 31.788415440241174
+    },
+    "deep_pls": {
+      "model": "Deep Residual PLS (L=3)",
+      "rmse": 11.14080002739173,
+      "mae": 8.612737436990864,
+      "r2": 0.5713486836538788,
+      "mape": 31.395552364041386
+    },
+    "layers": [
+      {
+        "model": "Layer 1 (standalone)",
+        "rmse": 11.24849676062088,
+        "mae": 8.727781963684643,
+        "r2": 0.5630211885262482,
+        "mape": 31.788415440241174
+      },
+      {
+        "model": "Layer 2 (standalone)",
+        "rmse": 16.981423347677694,
+        "mae": 13.708406949640812,
+        "r2": 0.004091171897550261,
+        "mape": 61.5047588534568
+      },
+      {
+        "model": "Layer 3 (standalone)",
+        "rmse": 17.022369082254546,
+        "mae": 13.700185141461473,
+        "r2": -0.0007173038202508142,
+        "mape": 61.36718667147311
+      }
+    ]
+  },
+  "rmse_improvement_pct": 0.96
+}

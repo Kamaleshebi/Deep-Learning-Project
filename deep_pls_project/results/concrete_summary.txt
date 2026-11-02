@@ -1,0 +1,9 @@
+Dataset : Concrete Compressive Strength
+CSV     : data/Concrete_Data.csv
+Layers  : 3
+Components/layer : 4
+Fusion components: 3
+
+Baseline  RMSE=0.30746  R2=0.84598
+Deep PLS  RMSE=0.33127  R2=0.82120
+RMSE improvement: -7.7%

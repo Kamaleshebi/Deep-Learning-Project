@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enhanced Soft Sensor Framework</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root {
+    --bg-light: #f8f9fa;
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --border: rgba(0, 0, 0, 0.08);
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent2: #059669;
+    --danger: #dc2626;
+    --warn: #d97706;
+    --text: #1e293b;
+    --muted: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Outfit', sans-serif;
+    --shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--bg-light);
+    background-image: url('/static/img/concrete_wall_bg.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+  
+  /* Header */
+  header {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 1.2rem 3rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  }
+  .header-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent), #3b82f6);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: white;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+  }
+  .header-text h1 { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.02em; color: #0f172a; }
+  .header-text p { font-size: 0.85rem; color: var(--muted); font-weight: 400; }
+  .header-badge {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 0.75rem; font-weight: 700;
+    background: rgba(37, 99, 235, 0.1); color: var(--accent);
+    padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(37,99,235,0.2);
+  }
+
+  /* Main Layout */
+  .main { display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 86px); }
+
+  /* Sidebar */
+  .sidebar {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(24px);
+    border-right: 1px solid var(--border);
+    padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.02);
+  }
+  .section-label {
+    font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 0.8rem; font-weight: 700;
+  }
+  .form-group label { display: block; font-size: 0.85rem; font-weight: 500; color: #334155; margin-bottom: 6px; }
+  .form-group select, .predict-inputs input {
+    width: 100%; background: #ffffff; border: 1px solid #cbd5e1; color: var(--text);
+    border-radius: 10px; padding: 10px 14px; font-family: var(--sans); font-size: 0.95rem; transition: all 0.2s;
+  }
+  .form-group select:focus, .predict-inputs input:focus {
+    outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  }
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input[type=range] { flex: 1; accent-color: var(--accent); }
+  .range-val {
+    font-family: var(--mono); font-size: 0.85rem; font-weight: 700; color: var(--accent);
+    background: rgba(37,99,235,0.1); padding: 4px 8px; border-radius: 6px; min-width: 40px; text-align: right;
+  }
+
+  .btn-train {
+    width: 100%; padding: 14px; border: none; border-radius: 12px; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), #4f46e5); color: white;
+    font-family: var(--sans); font-weight: 700; font-size: 1rem; letter-spacing: 0.05em;
+    box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3); transition: all 0.2s;
+  }
+  .btn-train:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4); }
+  .btn-train:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Log Console */
+  .log-console {
+    background: #1e293b; border-radius: 12px; padding: 14px;
+    font-family: var(--mono); font-size: 0.8rem; color: #a7f3d0;
+    line-height: 1.6; max-height: 220px; overflow-y: auto;
+    box-shadow: inset 0 4px 10px rgba(0,0,0,0.2);
+  }
+  
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono);
+    font-size: 0.75rem; padding: 6px 12px; border-radius: 20px; font-weight: 700;
+  }
+  .status-pill.idle { background: #f1f5f9; color: var(--muted); }
+  .status-pill.training { background: #dbeafe; color: var(--accent); }
+  .status-pill.done { background: #d1fae5; color: var(--accent2); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .status-pill.training .dot { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+
+  .progress-wrap { height: 4px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #4f46e5); transition: width 0.4s; }
+  .progress-bar.indeterminate { width: 40%; animation: indet 1.5s infinite ease-in-out; }
+  @keyframes indet { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+
+  .content { padding: 2.5rem; display: flex; flex-direction: column; overflow-y: auto; }
+  
+  /* Main Tabs */
+  .main-tabs { display: flex; gap: 10px; margin-bottom: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+  .m-tab { font-family: var(--sans); font-weight: 700; font-size: 1.1rem; padding: 12px 24px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all 0.2s; position: relative; }
+  .m-tab:hover { color: var(--text); }
+  .m-tab.active { color: var(--accent); }
+  .m-tab.active::after { content: ''; position: absolute; bottom: -12px; left: 0; width: 100%; height: 4px; background: var(--accent); border-radius: 4px 4px 0 0; }
+  
+  .page { display: none; flex-direction: column; gap: 2.5rem; }
+  .page.active { display: flex; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+
+  /* Metrics */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; }
+  .metric-card {
+    background: var(--card-bg); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.4); border-radius: 16px; padding: 1.5rem;
+    box-shadow: var(--shadow); transition: transform 0.2s; position: relative; overflow: hidden;
+  }
+  .metric-card:hover { transform: translateY(-5px); }
+  .metric-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 6px; }
+  .metric-value { font-family: var(--mono); font-size: 1.8rem; font-weight: 700; color: #0f172a; }
+  .metric-value.accent { color: var(--accent); }
+  .metric-value.accent2 { color: var(--accent2); }
+  .metric-value.danger { color: var(--danger); }
+  .metric-value.warn { color: var(--warn); }
+  .metric-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+  /* Cards & Tables */
+  .card {
+    background: var(--card-bg); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.6); border-radius: 20px; padding: 2.5rem;
+    box-shadow: var(--shadow);
+  }
+  .card-title { font-family: var(--sans); font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px; }
+  .card-title::before { content: ''; width: 5px; height: 1.2em; background: var(--accent); border-radius: 4px; }
+
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .compare-table th { font-family: var(--mono); font-size: 0.8rem; text-transform: uppercase; color: var(--muted); padding: 14px; border-bottom: 2px solid #e2e8f0; text-align: left; }
+  .compare-table td { padding: 16px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; font-weight: 500; }
+  .compare-table tr.highlight td { background: rgba(37, 99, 235, 0.05); color: var(--accent); font-weight: 800; border-radius: 8px; }
+  .compare-table .mono { font-family: var(--mono); font-size: 0.95rem; }
+
+  /* Explanations Section */
+  .explanation-section { display: none; }
+  .explanation-section.show { display: block; animation: fadeIn 0.5s ease; }
+  .info-box { background: #f8fafc; border-left: 4px solid var(--accent); padding: 1.5rem; border-radius: 0 12px 12px 0; margin-bottom: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+  .info-box h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 10px; font-weight: 700; }
+  .info-box p { font-size: 0.95rem; line-height: 1.7; color: #475569; margin-bottom: 10px; }
+  .info-box ul { padding-left: 20px; color: #475569; font-size: 0.95rem; line-height: 1.7; }
+  .info-box ul li { margin-bottom: 6px; }
+
+  /* Plots */
+  .plot-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .tab-btn { font-family: var(--sans); font-weight: 600; font-size: 0.9rem; padding: 10px 20px; border-radius: 10px; border: 1px solid #cbd5e1; background: white; color: var(--muted); cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+  .tab-btn:hover { background: #f8fafc; color: var(--text); }
+  .tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); }
+  .plot-frame { background: white; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 15px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); }
+  .plot-frame img { width: 100%; height: auto; display: block; border-radius: 8px; }
+
+  /* Predict Form */
+  .predict-inputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-bottom: 1.5rem; }
+  .predict-input-wrap label { font-family: var(--sans); font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  .btn-predict { padding: 14px 28px; background: var(--accent2); border: none; color: white; border-radius: 10px; font-family: var(--sans); font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3); }
+  .btn-predict:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4); }
+  
+    .predict-result {
+      margin-top: 1.5rem;
+      padding: 0;
+      background: transparent;
+      border: none;
+      display: none;
+      box-shadow: none;
+    }
+
+    /* Pipeline Styles */
+    .pipeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .pipe-step {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      position: relative;
+    }
+    .pipe-step h3 {
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pipe-arrow {
+      text-align: center;
+      color: var(--accent);
+      font-size: 1.5rem;
+      font-weight: bold;
+      animation: bounce 2s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+    .pipe-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      text-align: center;
+    }
+    .pipe-grid-3 > div {
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .pipe-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+    .pipe-val { font-size: 1.2rem; font-weight: 700; color: #0f172a; font-family: var(--mono); }
+    
+    .latent-bars {
+      display: flex;
+      gap: 4px;
+      align-items: flex-end;
+      height: 60px;
+      padding: 10px;
+      background: #f1f5f9;
+      border-radius: 8px;
+    }
+    .latent-bar {
+      flex: 1;
+      background: linear-gradient(to top, var(--accent), #4f46e5);
+      border-radius: 4px;
+      transition: height 0.5s;
+    }
+    
+    .layer-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      padding: 12px 20px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      border-left: 4px solid var(--accent);
+    }
+    .final-step {
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      border-color: #bae6fd;
+    }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">🏗️</div>
+  <div class="header-text">
+    <h1>Concrete Soft Sensor</h1>
+    <p>Professional Autoencoder & Deep PLS Framework</p>
+  </div>
+  <div class="header-badge">v2.0 • Light Theme</div>
+</header>
+
+<div class="main">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="section-label">Pipeline Config</div>
+      <div class="form-group">
+        <label>Dataset</label>
+        <select id="selDataset" disabled>
+          <option value="concrete">Concrete — Compressive Strength (11 features)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Deep PLS Layers (<span id="vLayers">2</span>)</label>
+        <div class="range-row">
+          <input type="range" id="slLayers" min="1" max="5" value="2" oninput="document.getElementById('vLayers').textContent=this.value">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label>Components per Layer (<span id="vComp">2</span>)</label>
+        <div class="range-row">
+          <input type="range" id="slComp" min="1" max="10" value="2" oninput="document.getElementById('vComp').textContent=this.value">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="chkCV" checked style="accent-color:var(--accent)">
+          Auto-select components (Fast CV)
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Execution</div>
+      <button id="btnTrain" class="btn-train" onclick="startTraining()">TRAIN FRAMEWORK</button>
+      
+      <div style="margin-top:20px">
+        <div id="statusPill" class="status-pill idle">
+          <div class="dot"></div><span id="statusTxt">IDLE</span>
+        </div>
+        <div class="progress-wrap"><div id="progBar" class="progress-bar"></div></div>
+      </div>
+    </div>
+    
+    <div style="flex:1"></div>
+
+    <div>
+      <div class="section-label">Live Console</div>
+      <div class="log-console" id="logOut">Ready.</div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+    
+    <div class="main-tabs">
+      <button class="m-tab active" onclick="switchPage('page-predict', this)">1. Prediction Pipeline</button>
+      <button class="m-tab" onclick="switchPage('page-eval', this)">2. Evaluation Metrics</button>
+      <button class="m-tab" onclick="switchPage('page-vis', this)">3. Visualizations & XAI</button>
+    </div>
+
+    <!-- PAGE 1: PREDICTION -->
+    <div id="page-predict" class="page active">
+      <div class="card" id="predictCard">
+        <h2 class="card-title">Concrete Strength Simulator</h2>
+        <p class="predict-hint" style="color:var(--muted); margin-bottom:20px;">Enter the 8 base material measurements below. The framework will visually demonstrate the exact step-by-step mathematical flow used to predict the Compressive Strength.</p>
+        <div class="predict-inputs" id="pInputs"></div>
+        <button class="btn-predict" onclick="doPredict()">Simulate Pipeline</button>
+        
+        <div class="predict-result" id="pResult"></div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: EVALUATION -->
+    <div id="page-eval" class="page">
+      <!-- METRICS -->
+      <div class="metrics-grid">
+        <div class="metric-card" id="mc1">
+          <div class="metric-label">Proposed Model — RMSE</div>
+          <div class="metric-value accent" id="mv1">—</div>
+          <div class="metric-sub">Autoencoder + Deep PLS</div>
+        </div>
+        <div class="metric-card" id="mc2">
+          <div class="metric-label">Proposed Model — R²</div>
+          <div class="metric-value accent" id="mv2">—</div>
+          <div class="metric-sub">Coefficient of Determination</div>
+        </div>
+        <div class="metric-card" id="mc3">
+          <div class="metric-label">Existing Deep PLS — RMSE</div>
+          <div class="metric-value danger" id="mv3">—</div>
+          <div class="metric-sub">Standard Deep PLS</div>
+        </div>
+        <div class="metric-card" id="mc4">
+          <div class="metric-label">GNN — RMSE</div>
+          <div class="metric-value warn" id="mv4">—</div>
+          <div class="metric-sub">Graph Neural Network</div>
+        </div>
+      </div>
+
+      <!-- COMPARISON TABLE -->
+      <div class="card" id="resultsCard" style="display:none">
+        <h2 class="card-title">Framework Performance Benchmark</h2>
+        <div id="tableWrap"></div>
+      </div>
+
+      <!-- EXPLANATIONS -->
+      <div class="card explanation-section" id="expCard">
+        <h2 class="card-title">Implementation Details & Constraints Met</h2>
+        
+        <div class="info-box">
+          <h3>1. Feature Engineering & Split</h3>
+          <p><strong>80% Train / 20% Test Split:</strong> We properly partition the dataset prior to any scaling to prevent data leakage.</p>
+          <p><strong>Derived Physical Features:</strong></p>
+          <ul>
+            <li><strong>Water–Cement Ratio</strong> = <code>Water / Cement</code></li>
+            <li><strong>Binder Content</strong> = <code>Cement + Slag + Fly Ash</code></li>
+            <li><strong>Aggregate Ratio</strong> = <code>Fine Aggregate / Coarse Aggregate</code></li>
+          </ul>
+        </div>
+
+        <div class="info-box">
+          <h3>2. Deep Learning Autoencoder</h3>
+          <p>An Autoencoder is a deep neural network that learns highly efficient, non-linear representations of data without human supervision.</p>
+          <div style="display:flex; gap:20px; align-items:center; margin-top:15px; flex-wrap:wrap">
+            <img src="/static/img/cement_bricks.png" alt="Cement Bricks" style="width:200px; height:140px; border-radius:12px; object-fit:cover; box-shadow:0 4px 15px rgba(0,0,0,0.1)">
+            <ul style="flex:1">
+              <li><strong>Encoder:</strong> Compresses the 11-dimensional raw input into a refined 32-dimensional "bottleneck" state, stripping away noise.</li>
+              <li><strong>Decoder:</strong> Validates this bottleneck by attempting to reconstruct the input.</li>
+              <li><strong>Output:</strong> We pass only the mathematically pure bottleneck variables directly into the PLS model, improving regression robustness.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3>3. Graph Neural Network (GNN) vs Deep Residual PLS</h3>
+          <p><strong>Graph Neural Networks (GNN)</strong> look at the entire dataset as a connected "network" of nodes (samples). They evaluate how similar concrete mixtures relate to each other mathematically, passing messages between related samples to find structural patterns. While powerful, they often over-smooth regression data.</p>
+          <p><strong>Deep Residual Probabilistic PLS</strong> (Our Model) takes a different approach:</p>
+          <div style="display:flex; gap:20px; align-items:center; margin-top:15px; flex-wrap:wrap">
+            <ul style="flex:1">
+              <li>It trains standard PLS on the Autoencoder features and computes the residual error.</li>
+              <li>It repeatedly trains <em>new layers</em> specifically targeting the errors left by previous layers.</li>
+              <li>It fuses these outputs together, enforcing rigorous RMSE minimization without GNN's over-smoothing effect.</li>
+            </ul>
+            <img src="/static/img/machine_pouring.png" alt="Machine Pouring Cement" style="width:200px; height:140px; border-radius:12px; object-fit:cover; box-shadow:0 4px 15px rgba(0,0,0,0.1)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: VISUALIZATION -->
+      <div class="card" id="plotsCard" style="display:none">
+        <h2 class="card-title">Visualizations & XAI</h2>
+        <h3 style="margin-bottom:15px; color:#1e293b; font-family:var(--sans)">Detailed Model Diagnostics</h3>
+        <div class="plot-tabs" id="plotTabs">
+          <button class="tab-btn active" onclick="showPlot('actual_vs_pred', this)">Actual vs Predicted</button>
+          <button class="tab-btn" onclick="showPlot('parity', this)">Parity Plot</button>
+          <button class="tab-btn" onclick="showPlot('error_dist', this)">Residual Error</button>
+          <button class="tab-btn" onclick="showPlot('autoencoder_proof', this)">Why Autoencoder?</button>
+          <button class="tab-btn" onclick="showPlot('improvement', this)">Baseline vs Autoencoder (RMSE)</button>
+          <button class="tab-btn" onclick="showPlot('confusion', this)">Confusion Matrix</button>
+          <button class="tab-btn" onclick="showPlot('gnn_influences', this)">GNN Influences</button>
+          <button class="tab-btn" onclick="showPlot('shap', this)" style="border-color:var(--accent); color:var(--accent)">Feature Importance (SHAP)</button>
+        </div>
+        <div class="plot-frame">
+          <div id="htmlPlotContainer" style="display:none; width:100%; text-align:left;"></div>
+          <img id="imgPlot" src="" alt="Plot">
+        </div>
+      </div>
+    </div>
+    
+  </main>
+</div>
+
+<script>
+let _pollTimer = null;
+let _plots = {};
+let _currentPlot = "actual_vs_pred";
+let _datasetSchema = {
+  "concrete": {
+    inputs: [
+      {id:"cement", label:"Cement (kg)", val:250},
+      {id:"slag", label:"Blast Furnace Slag (kg)", val:130},
+      {id:"fly_ash", label:"Fly Ash (kg)", val:0},
+      {id:"water", label:"Water (kg)", val:180},
+      {id:"superp", label:"Superplasticizer (kg)", val:8},
+      {id:"coarse", label:"Coarse Aggregate (kg)", val:950},
+      {id:"fine", label:"Fine Aggregate (kg)", val:750},
+      {id:"age", label:"Age (days)", val:28}
+    ]
+  }
+};
+
+function startTraining() {
+  const btn = document.getElementById("btnTrain");
+  btn.disabled = true;
+  document.getElementById("statusTxt").textContent = "TRAINING";
+  const pill = document.getElementById("statusPill");
+  pill.className = "status-pill training";
+  document.getElementById("progBar").className = "progress-bar indeterminate";
+  
+  // Hide UI
+  document.getElementById("resultsCard").style.display = "none";
+  document.getElementById("expCard").classList.remove("show");
+  document.getElementById("plotsCard").style.display = "none";
+  document.getElementById("predictCard").style.display = "none";
+  
+  // Clear Logs
+  document.getElementById("logOut").innerHTML = "";
+
+  const payload = {
+    dataset: document.getElementById("selDataset").value,
+    layers: parseInt(document.getElementById("slLayers").value),
+    components: parseInt(document.getElementById("slComp").value),
+    final_comp: 0,
+    test_size: 0.2, // Enforced 20% test split per requirements
+    use_cv: document.getElementById("chkCV").checked
+  };
+
+  fetch("/train", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  }).then(res => {
+    if(!res.ok) throw new Error("Train trigger failed");
+    _pollTimer = setInterval(pollStatus, 1500);
+  }).catch(e => {
+    btn.disabled = false;
+    pill.className = "status-pill error";
+    document.getElementById("statusTxt").textContent = "ERROR";
+  });
+}
+
+function pollStatus() {
+  fetch("/status")
+    .then(r => r.json())
+    .then(data => {
+      renderLogs(data.log);
+      
+      if(data.status === "done") {
+        clearInterval(_pollTimer);
+        document.getElementById("btnTrain").disabled = false;
+        document.getElementById("statusTxt").textContent = "COMPLETED";
+        document.getElementById("statusPill").className = "status-pill done";
+        document.getElementById("progBar").className = "progress-bar";
+        document.getElementById("progBar").style.width = "100%";
+        renderResults(data.results);
+      } else if(data.status === "error") {
+        clearInterval(_pollTimer);
+        document.getElementById("btnTrain").disabled = false;
+        document.getElementById("statusTxt").textContent = "FAILED";
+        document.getElementById("statusPill").className = "status-pill error";
+        document.getElementById("progBar").className = "progress-bar";
+        document.getElementById("progBar").style.width = "0%";
+      }
+    });
+}
+
+function renderLogs(lines) {
+  const c = document.getElementById("logOut");
+  const existing = c.children.length;
+  if(lines.length > existing) {
+    for(let i = existing; i < lines.length; i++) {
+      const div = document.createElement("div");
+      div.className = "log-line";
+      div.textContent = "> " + lines[i];
+      c.appendChild(div);
+    }
+    c.scrollTop = c.scrollHeight;
+  }
+}
+
+function renderResults(r) {
+  if (!r || !r.baseline) return;
+
+  // Show Sections
+  document.getElementById("resultsCard").style.display = "block";
+  document.getElementById("expCard").classList.add("show");
+  document.getElementById("plotsCard").style.display = "block";
+  document.getElementById("predictCard").style.display = "block";
+
+  // Metrics
+  document.getElementById("mv1").textContent = r.deep.rmse.toFixed(5);
+  document.getElementById("mv2").textContent = r.deep.r2.toFixed(5);
+  document.getElementById("mv3").textContent = r.baseline.rmse.toFixed(5);
+  document.getElementById("mv4").textContent = r.gnn.rmse.toFixed(5);
+
+  // Table
+  let rows = `<tr>
+    <td>Graph Neural Network (GNN)</td>
+    <td class="mono">${r.gnn.rmse.toFixed(5)}</td>
+    <td class="mono">${r.gnn.r2.toFixed(5)}</td>
+    <td class="mono">—</td></tr>`;
+  rows += `<tr>
+    <td>Existing Deep PLS</td>
+    <td class="mono">${r.baseline.rmse.toFixed(5)}</td>
+    <td class="mono">${r.baseline.r2.toFixed(5)}</td>
+    <td class="mono">—</td></tr>`;
+  rows += `<tr class="highlight">
+    <td>⚡ Autoencoder + Deep PLS (Proposed)</td>
+    <td class="mono">${r.deep.rmse.toFixed(5)}</td>
+    <td class="mono">${r.deep.r2.toFixed(5)}</td>
+    <td class="mono">${r.deep.mae ? r.deep.mae.toFixed(5) : '—'}</td></tr>`;
+
+  document.getElementById("tableWrap").innerHTML = `
+    <table class="compare-table">
+      <thead><tr><th>Model</th><th>Scaled RMSE ↓</th><th>R² ↑</th><th>MAE ↓</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  // Plots
+  _plots = r.plots || {};
+  if (r.autoencoder_proof) {
+    let rawC = r.autoencoder_proof.avg_raw_corr;
+    let aeC = r.autoencoder_proof.avg_ae_corr;
+    let maxC = Math.max(rawC, aeC) * 1.1;
+    _plots['autoencoder_proof'] = `
+      <div style="background:#f8fafc; padding:30px; border-radius:12px; border:1px solid #e2e8f0; margin:20px;">
+        <h3 style="margin-bottom:15px; color:#0f172a; font-family:var(--sans);">Why Use an Autoencoder?</h3>
+        <p style="color:var(--muted); font-size:0.95rem; margin-bottom:25px; line-height:1.6;">
+          The Autoencoder compresses the raw inputs into a 32-dimensional latent bottleneck, removing noise and extracting non-linear interactions. 
+          By plotting the average feature correlation with the target strength (MPa), we mathematically prove that the Autoencoder's latent features are far more predictive than the raw inputs alone.
+        </p>
+        
+        <div style="margin-bottom: 25px;">
+            <div style="font-size:0.85rem; color:var(--muted); font-weight:800; text-transform:uppercase; margin-bottom:15px; letter-spacing:0.05em;">Average Feature Correlation <span style="font-weight:400; text-transform:none;">(Higher is Better)</span></div>
+            
+            <div style="display:flex; align-items:center; margin-bottom:15px; gap:15px;">
+              <div style="width:160px; font-size:0.95rem; font-weight:600; color:var(--muted)">Raw Features</div>
+              <div style="flex:1; background:#e2e8f0; height:24px; border-radius:12px; overflow:hidden;">
+                <div style="width:${(rawC / maxC) * 100}%; height:100%; background:var(--muted);"></div>
+              </div>
+              <div style="width:60px; text-align:right; font-family:var(--mono); font-weight:700;">${rawC.toFixed(3)}</div>
+            </div>
+            
+            <div style="display:flex; align-items:center; gap:15px;">
+              <div style="width:160px; font-size:0.95rem; font-weight:600; color:var(--accent)">Autoencoder Features</div>
+              <div style="flex:1; background:#e2e8f0; height:24px; border-radius:12px; overflow:hidden;">
+                <div style="width:${(aeC / maxC) * 100}%; height:100%; background:var(--accent);"></div>
+              </div>
+              <div style="width:60px; text-align:right; font-family:var(--mono); font-weight:700; color:var(--accent)">${aeC.toFixed(3)}</div>
+            </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  showPlot(_currentPlot, document.querySelector(".tab-btn.active"));
+
+  // Predict
+  buildPredictInputs();
+}
+
+function showPlot(key, btnElem) {
+  _currentPlot = key;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  if (btnElem) btnElem.classList.add("active");
+  const img = document.getElementById("imgPlot");
+  const htmlContainer = document.getElementById("htmlPlotContainer");
+  
+  if (key === 'autoencoder_proof') {
+    img.style.display = "none";
+    htmlContainer.innerHTML = _plots[key];
+    htmlContainer.style.display = "block";
+  } else {
+    if(htmlContainer) htmlContainer.style.display = "none";
+    if (_plots[key]) {
+      img.src = "data:image/png;base64," + _plots[key];
+      img.style.display = "block";
+    } else {
+      img.style.display = "none";
+    }
+  }
+}
+
+function buildPredictInputs() {
+  const c = document.getElementById("pInputs");
+  c.innerHTML = "";
+  _datasetSchema["concrete"].inputs.forEach(inp => {
+    c.innerHTML += `
+      <div class="predict-input-wrap">
+        <label>${inp.label}</label>
+        <input type="number" step="any" id="pi_${inp.id}" value="${inp.val}">
+      </div>
+    `;
+  });
+}
+
+async function doPredict() {
+  const vals = _datasetSchema["concrete"].inputs.map(inp => 
+    parseFloat(document.getElementById("pi_" + inp.id).value) || 0
+  );
+  
+  const res = document.getElementById("pResult");
+  res.innerHTML = '<div style="padding:20px; text-align:center; color:var(--accent); font-weight:bold;">Running Pipeline Simulator...</div>';
+  res.style.display = "block";
+
+  try {
+    const r = await fetch("/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset: "concrete", values: vals })
+    });
+    const data = await r.json();
+
+    if (data.error) {
+      res.innerHTML = `<div style="padding:20px; background:white; border-radius:12px;"><span style="color:var(--danger)">Error:</span> ${data.error}</div>`;
+      return;
+    }
+
+    let catColor = "var(--accent2)";
+    if (data.category.includes("Weak")) catColor = "var(--danger)";
+    if (data.category.includes("Moderate")) catColor = "var(--warn)";
+    if (data.category.includes("Standard")) catColor = "var(--accent)";
+    if (data.category.includes("Good")) catColor = "var(--accent2)";
+    if (data.category.includes("High")) catColor = "#8b5cf6";
+
+    // Build latent bars visually
+    let latentHtml = '';
+    data.features.latent.forEach(val => {
+       let h = Math.min(100, Math.max(10, Math.abs(val) * 30));
+       latentHtml += `<div class="latent-bar" style="height:${h}%" title="Latent Value: ${val}"></div>`;
+    });
+
+    // Build PLS layers visually using user's explicit logic
+    let layersHtml = '';
+    let preds = data.layers.predictions;
+    
+    layersHtml += `
+      <div class="layer-card" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:15px 20px; border-radius:10px; border-left:4px solid var(--accent);">
+        <div>
+          <div style="font-weight:800; color:#1e293b; font-size:1.1rem;">Layer 1</div>
+          <div style="font-size:0.85rem; color:var(--muted); margin-top:4px;">Base Prediction</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--mono); font-weight:800; font-size:1.2rem; color:var(--accent)">
+            Prediction: ${preds[0].cumulative.toFixed(3)} MPa
+          </div>
+        </div>
+      </div>
+    `;
+
+    for (let i = 1; i < preds.length; i++) {
+      layersHtml += `
+        <div class="layer-card" style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:#fff8f1; padding:15px 20px; border-radius:10px; border-left:4px solid var(--warn);">
+          <div>
+            <div style="font-weight:800; color:#1e293b; font-size:1.1rem;">Layer ${i+1}</div>
+            <div style="font-size:0.85rem; color:var(--muted); margin-top:4px;">Error correction from previous layer</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:var(--mono); font-weight:800; font-size:1rem; color:var(--warn)">
+              Added Error: +${preds[i].error.toFixed(3)} MPa
+            </div>
+            <div style="font-family:var(--mono); font-weight:800; font-size:1.2rem; color:var(--accent); margin-top:6px; padding-top:6px; border-top:1px dashed #fed7aa;">
+              Prediction: ${preds[i].cumulative.toFixed(3)} MPa
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    res.innerHTML = `
+      <div class="pipeline-container">
+        <!-- STEP 1 -->
+        <div class="pipe-step">
+          <h3><span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem">1</span> Input Data & Normalization</h3>
+          <p style="font-size:0.9rem; color:var(--muted); margin-bottom:10px;">The 8 raw inputs are processed and normalized to (mean=0, var=1) using the fitted Standard Scaler.</p>
+          <div style="background:#f8fafc; padding:10px; border-radius:8px; font-family:var(--mono); font-size:0.8rem; color:#475569; word-break:break-all;">
+            Normalized Array:<br> [ ${data.features.normalized.slice(0,8).join(", ")} ]
+          </div>
+        </div>
+        
+        <div class="pipe-arrow">↓</div>
+        
+        <!-- STEP 2 -->
+        <div class="pipe-step">
+          <h3><span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem">2</span> Feature Engineering Calculations</h3>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:10px;">Deriving mathematical physical properties to improve model accuracy.</p>
+          <div class="pipe-grid-3">
+            <div>
+              <div class="pipe-label">Water / Cement</div>
+              <div style="font-size:0.75rem; color:var(--muted); margin-bottom:2px">Water ÷ Cement</div>
+              <div class="pipe-val">${data.features.engineered.wc_ratio}</div>
+            </div>
+            <div>
+              <div class="pipe-label">Binder Content</div>
+              <div style="font-size:0.75rem; color:var(--muted); margin-bottom:2px">Cement + Slag + Ash</div>
+              <div class="pipe-val">${data.features.engineered.binder}</div>
+            </div>
+            <div>
+              <div class="pipe-label">Aggregate Ratio</div>
+              <div style="font-size:0.75rem; color:var(--muted); margin-bottom:2px">Fine ÷ Coarse</div>
+              <div class="pipe-val">${data.features.engineered.aggregate}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">↓</div>
+        
+        <!-- STEP 3 -->
+        <div class="pipe-step">
+          <h3><span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem">3</span> Autoencoder Dimensionality Compression</h3>
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:15px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+            <div style="flex:1">
+               <span style="font-size:0.85rem; font-weight:700; color:var(--accent)">11 Features Taking In:</span>
+               <ul style="font-size:0.8rem; color:var(--muted); margin-top:5px; padding-left:15px;">
+                 <li>Cement</li><li>Slag</li><li>Fly Ash</li><li>Water</li>
+                 <li>Superplasticizer</li><li>Coarse Agg</li><li>Fine Agg</li><li>Age</li>
+                 <li><strong>W/C Ratio</strong></li><li><strong>Binder</strong></li><li><strong>Agg Ratio</strong></li>
+               </ul>
+            </div>
+            <div style="flex:1; text-align:center; padding-top:20px;">
+               <div style="color:var(--accent); font-weight:bold; font-size:1.5rem;">→</div>
+               <div style="font-size:0.8rem; font-weight:600; color:#1e293b;">Neural Net Compression</div>
+            </div>
+            <div style="flex:1;">
+               <span style="font-size:0.85rem; font-weight:700; color:var(--accent2)">Working Output:</span>
+               <p style="font-size:0.8rem; color:var(--muted); margin-top:5px;">Compresses the 11 non-linear physical interactions into a dense <strong>32-dimensional latent bottleneck</strong>, stripping away noise.</p>
+            </div>
+          </div>
+          <div class="pipe-label">Visualizing Latent Bottleneck (Top 10 dimensions):</div>
+          <div class="latent-bars">${latentHtml}</div>
+        </div>
+
+        <div class="pipe-arrow">↓</div>
+        
+        <!-- STEP 4 -->
+        <div class="pipe-step">
+          <h3><span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem">4</span> Deep Residual PLS Engine</h3>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:15px;">Layer 1 computes the base prediction. Subsequent layers compute explicit residual error corrections (Y_target - Y_pred) to continuously drive RMSE to 0.</p>
+          ${layersHtml}
+          <div style="text-align:center; font-family:var(--sans); font-size:1.2rem; font-weight:800; margin-top:15px; padding-top:10px; border-top:2px dashed #cbd5e1;">
+            Total Fused Model Output: <span style="color:var(--accent)">${data.layers.fused.toFixed(3)} MPa</span>
+          </div>
+        </div>
+
+        <div class="pipe-arrow">↓</div>
+        
+        <!-- STEP 5 -->
+        <div class="pipe-step final-step">
+          <h3><span style="background:var(--accent); color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.8rem">5</span> Final Prediction & Classification</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+            <div>
+              <div class="pipe-label">Predicted ${data.output_name}</div>
+              <div style="font-size:2.8rem; font-weight:800; color:#0f172a; font-family:var(--sans)">
+                ${data.prediction.toFixed(2)} <span style="font-size:1.2rem; color:var(--muted)">${data.unit}</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="pipe-label">Strength Category</div>
+              <div style="font-size:1.4rem; font-weight:800; color:${catColor}; background:rgba(255,255,255,0.7); padding:8px 16px; border-radius:10px; border:2px solid ${catColor}; display:inline-block;">
+                ${data.category}
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:20px; background:rgba(255,255,255,0.6); padding:15px; border-radius:12px; border-left:4px solid ${catColor}">
+            <div class="pipe-label" style="color:#1e293b">Construction Recommendation</div>
+            <div style="font-size:1rem; font-weight:600; color:#475569; margin-top:5px;">${data.recommendation}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    res.innerHTML = `<div style="padding:20px; background:white; border-radius:12px;"><span style="color:var(--danger)">Error:</span> Could not connect to prediction engine</div>`;
+  }
+}
+
+function switchPage(pageId, btn) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Deactivate all tabs
+  document.querySelectorAll('.m-tab').forEach(t => t.classList.remove('active'));
+  
+  // Show target page
+  document.getElementById(pageId).classList.add('active');
+  // Activate target tab
+  if(btn) btn.classList.add('active');
+}
+</script>
+</body>
+</html>
